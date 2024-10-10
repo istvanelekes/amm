@@ -4,11 +4,6 @@ pragma solidity ^0.8.0;
 import "hardhat/console.sol";
 import "./Token.sol";
 
-// [X] Manage Pool
-// [X] Manage Deposits
-// [X] Facilitate Swaps (i.e. Trades)
-// [ ] Manage Withdraws
-
 contract AMM {
     Token public token1;
     Token public token2;
@@ -27,6 +22,16 @@ contract AMM {
         uint256 tokenGiveAmount,
         address tokenGet,
         uint256 tokenGetAmount,
+        uint256 token1Balance,
+        uint256 token2Balance,
+        uint256 timestamp
+    );
+
+    event RemoveLiquidity(
+        address user,
+        uint256 share,
+        uint256 token1Amount,
+        uint256 token2Amount,
         uint256 token1Balance,
         uint256 token2Balance,
         uint256 timestamp
@@ -162,4 +167,44 @@ contract AMM {
         );
     }
 
+    // Determine how many tokens will be withdrawn
+    function calculateWithdrawAmount(uint256 _share) 
+        public
+        view
+        returns(uint256 token1Amount, uint256 token2Amount) 
+    {
+        require(_share <= totalShares, "must be less than total shares");
+        token1Amount = (_share * token1Balance) / totalShares;
+        token2Amount = (_share * token2Balance) / totalShares;
+    }
+
+    // Remove liquidity from the pool
+    function removeLiquidity(uint256 _share) 
+        external 
+        returns(uint256 token1Amount, uint256 token2Amount) 
+    {
+        require(_share <= shares[msg.sender], "cannot withdraw more shares than you have");
+        (token1Amount, token2Amount) = calculateWithdrawAmount(_share);
+
+        shares[msg.sender] -= _share;
+        totalShares -= _share;
+
+        token1Balance -= token1Amount;
+        token2Balance -= token2Amount;
+        K = token1Balance * token2Balance;
+
+        token1.transfer(msg.sender, token1Amount);
+        token2.transfer(msg.sender, token2Amount);
+
+        // Emit remove event
+        emit RemoveLiquidity(
+            msg.sender,
+            _share,
+            token1Amount,
+            token2Amount,
+            token1Balance,
+            token2Balance,
+            block.timestamp
+        );
+    }
 }

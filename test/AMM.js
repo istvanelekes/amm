@@ -6,6 +6,7 @@ const tokens = (n) => {
 }
 
 const ether = tokens
+const shares = ether
 
 describe('AMM', () => {
   let accounts, deployer, liquidityProvider, investor1, investor2
@@ -262,6 +263,56 @@ describe('AMM', () => {
 
         // Check price after swapping
         console.log(`Price: ${await amm.token2Balance() / await amm.token1Balance()}\n`)
+
+
+        ////////////////////////////////////////////////////
+        // Removing Liquidity
+        //
+
+        console.log(`AMM Token1 balance: ${ethers.utils.formatEther(await amm.token1Balance())}\n`)
+        console.log(`AMM Token2 balance: ${ethers.utils.formatEther(await amm.token2Balance())}\n`)
+
+        // Check LP balance before removing tokens
+        balance = await token1.balanceOf(liquidityProvider.address)
+        console.log(`LP token1 balance before removing funds: ${ethers.utils.formatEther(balance)}\n`)
+        
+        balance = await token2.balanceOf(liquidityProvider.address)
+        console.log(`LP token2 balance before removing funds: ${ethers.utils.formatEther(balance)}\n`)
+
+        // LP removes tokens from AMM pool
+        transaction = await amm.connect(liquidityProvider).removeLiquidity(shares(50)) // 50 shares
+        await transaction.wait()
+
+        // Check 'RemoveLiquidity' event
+
+        let tokenAmounts = await amm.calculateWithdrawAmount(shares(50))
+
+        await expect(transaction).to.emit(amm, 'RemoveLiquidity')
+          .withArgs(
+            liquidityProvider.address,
+            shares(50),
+            tokenAmounts[0],
+            tokenAmounts[1],
+            await amm.token1Balance(),
+            await amm.token2Balance(),
+            (await ethers.provider.getBlock(await ethers.provider.getBlockNumber())).timestamp
+          )
+
+        // Check LP balance after removing tokens
+        balance = await token1.balanceOf(liquidityProvider.address)
+        console.log(`LP token1 balance after removing funds: ${ethers.utils.formatEther(balance)}\n`)
+
+        balance = await token2.balanceOf(liquidityProvider.address)
+        console.log(`LP token2 balance after removing funds: ${ethers.utils.formatEther(balance)}\n`)
+
+        // LP should have 0 shares
+        expect(await amm.shares(liquidityProvider.address)).to.equal(0)
+
+        // Deployer should have 100 shares
+        expect(await amm.shares(deployer.address)).to.equal(shares(100))
+
+        // AMM pool has 100 total shares
+        expect(await amm.totalShares()).to.equal(shares(100))
     })
 
   })
