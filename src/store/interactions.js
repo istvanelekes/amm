@@ -2,7 +2,7 @@ import { ethers } from 'ethers'
 
 import { setProvider, setNetwork, setAccount } from './reducers/provider'
 import { setContracts, setSymbols, balancesLoaded } from './reducers/tokens'
-import { setContract, sharesLoaded } from './reducers/amm'
+import { setContract, sharesLoaded, swapRequest, swapSuccess, swapFailed } from './reducers/amm'
 
 import TOKEN_ABI from '../abis/Token.json'
 import AMM_ABI from '../abis/AMM.json'
@@ -61,3 +61,32 @@ export const loadBalances = async (amm, tokens, account, dispatch) => {
     dispatch(sharesLoaded(ethers.utils.formatUnits(shares.toString(), 'ether')))
 }
 
+// ----------------------------------------------------------------------------------
+// Swap
+
+export const swap = async (provider, amm, token, symbol, amount, dispatch) => {
+    try {
+        // Tell Redux that the user is swapping...
+        dispatch(swapRequest())
+
+        let transaction
+
+        const signer = await provider.getSigner()
+
+        transaction = await token.connect(signer).approve(amm.address, amount)
+        await transaction.wait()
+
+        if (symbol === 'DAPP') {
+            transaction = await amm.connect(signer).swapToken1(amount)
+        } else {
+            transaction = await amm.connect(signer).swapToken2(amount)
+        }
+
+        await transaction.wait()
+
+        // Tell Redux that swap is finished
+        dispatch(swapSuccess(transaction.hash))
+    } catch (error) {
+        dispatch(swapFailed())
+    }
+}
