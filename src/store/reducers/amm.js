@@ -6,13 +6,18 @@ export const amm = createSlice({
         contract: null,
         shares: 0,
         swaps: [],
-        swapping: {
-            isSwapping: false,
+        depositing: {
+            isDepositing: false,
             isSuccess: false,
             transactionHash: null
         },
-        depositing: {
-            isDepositing: false,
+        withdrawing: {
+            isWithdrawing: false,
+            isSuccess: false,
+            transactionHash: null
+        },
+        swapping: {
+            isSwapping: false,
             isSuccess: false,
             transactionHash: null
         }
@@ -39,6 +44,21 @@ export const amm = createSlice({
             state.depositing.isSuccess = false
             state.depositing.transactionHash = null
         },
+        withdrawRequest: (state, action) => {
+            state.withdrawing.isWithdrawing = true
+            state.withdrawing.isSuccess = false
+            state.withdrawing.transactionHash = null
+        },
+        withdrawSuccess: (state, action) => {
+            state.withdrawing.isWithdrawing = false
+            state.withdrawing.isSuccess = true
+            state.withdrawing.transactionHash = action.payload
+        },
+        withdrawFailed: (state, action) => {
+            state.withdrawing.isWithdrawing = false
+            state.withdrawing.isSuccess = false
+            state.withdrawing.transactionHash = null
+        },
         swapRequest: (state, action) => {
             state.swapping.isSwapping = true
             state.swapping.isSuccess = false
@@ -57,6 +77,11 @@ export const amm = createSlice({
     }
 })
 
-export const { setContract, sharesLoaded, swapRequest, swapSuccess, swapFailed, depositRequest, depositSuccess, depositFailed } = amm.actions;
+export const { 
+    setContract, sharesLoaded,
+    swapRequest, swapSuccess, swapFailed, 
+    depositRequest, depositSuccess, depositFailed,
+    withdrawRequest, withdrawSuccess, withdrawFailed
+ } = amm.actions;
 
 export default amm.reducer;

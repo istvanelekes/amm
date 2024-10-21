@@ -111,7 +111,6 @@ const Deposit = () => {
                     </Row>
 
                     <Row className="my-3">
-                        
                         {isDepositing ? (
                             <Spinner animation="border" style={{ display: 'block', margin: '0 auto' }} />
                         ) : (
