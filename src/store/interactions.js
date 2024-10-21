@@ -2,7 +2,7 @@ import { ethers } from 'ethers'
 
 import { setProvider, setNetwork, setAccount } from './reducers/provider'
 import { setContracts, setSymbols, balancesLoaded } from './reducers/tokens'
-import { setContract, sharesLoaded, swapRequest, swapSuccess, swapFailed } from './reducers/amm'
+import { setContract, sharesLoaded, swapRequest, swapSuccess, swapFailed, depositFailed, depositRequest, depositSuccess } from './reducers/amm'
 
 import TOKEN_ABI from '../abis/Token.json'
 import AMM_ABI from '../abis/AMM.json'
@@ -62,8 +62,31 @@ export const loadBalances = async (amm, tokens, account, dispatch) => {
 }
 
 // ----------------------------------------------------------------------------------
-// Swap
+// Add Liquidity
+export const addLiquidity = async (provider, amm, tokens, amounts, dispatch) => {
+    try {
+        dispatch(depositRequest())
+        let transaction
 
+        const signer = await provider.getSigner()
+
+        transaction = await tokens[0].connect(signer).approve(amm.address, amounts[0])
+        await transaction.wait()
+
+        transaction = await tokens[1].connect(signer).approve(amm.address, amounts[1])
+        await transaction.wait()
+
+        transaction = await amm.connect(signer).addLiquidity(amounts[0], amounts[1])
+        await transaction.wait()
+
+        dispatch(depositSuccess(transaction.hash))
+    } catch (error) {
+        dispatch(depositFailed())
+    }
+}
+
+// ----------------------------------------------------------------------------------
+// Swap
 export const swap = async (provider, amm, token, symbol, amount, dispatch) => {
     try {
         // Tell Redux that the user is swapping...
