@@ -3,10 +3,10 @@ import { ethers } from 'ethers'
 import { setProvider, setNetwork, setAccount } from './reducers/provider'
 import { setContracts, setSymbols, balancesLoaded } from './reducers/tokens'
 import { 
-    setContract, sharesLoaded, 
+    setContract, sharesLoaded, swapsLoaded,
     swapRequest, swapSuccess, swapFailed, 
     depositFailed, depositRequest, depositSuccess, 
-    withdrawFailed, withdrawRequest, withdrawSuccess 
+    withdrawFailed, withdrawRequest, withdrawSuccess
 } from './reducers/amm'
 
 import TOKEN_ABI from '../abis/Token.json'
@@ -134,4 +134,18 @@ export const swap = async (provider, amm, token, symbol, amount, dispatch) => {
     } catch (error) {
         dispatch(swapFailed())
     }
+}
+
+// ----------------------------------------------------------------------------------
+// Load all Swaps
+export const loadAllSwaps = async (provider, amm, dispatch) => {
+
+    const block = await provider.getBlockNumber()
+
+    const swapStream = await amm.queryFilter('Swap', 0, block)
+    const swaps = swapStream.map(event => {
+        return { hash: event.transactionHash, args: event.args }
+    })
+
+    dispatch(swapsLoaded(swaps))
 }
